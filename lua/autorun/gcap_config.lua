@@ -1,7 +1,7 @@
 CAP = {}
  
 CAP.allowance = {
-        ["superadmin"] = true,
+    ["superadmin"] = true,
 }
 -- Groups whom are allowed to do this.
  
