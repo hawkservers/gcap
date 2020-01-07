@@ -31,30 +31,40 @@ net.Receive("Victim", function(len, server)
     local caller = net.ReadEntity()
     local victim = LocalPlayer()
     local quality = net.ReadString()
+
     assert(not SENDING_DATA)
     SENDING_DATA = true
-    local data = render.Capture {
-        x = 0,
-        y = 0,
-        w = ScrW(),
-        h = ScrH(),
-        quality = tonumber(quality)
-    }
-    local chunk_count = math.ceil(string.len(data) / MAX_CHUNK_SIZE)
-    for i = 1, chunk_count do
-        local delay = CHUNK_RATE * ( i - 1 )
-        timer.Simple(delay, function()
-            local chunk = string.sub(data, ( i - 1 ) * MAX_CHUNK_SIZE + 1, i * MAX_CHUNK_SIZE)
-            local chunk_len = string.len(chunk)
-            net.Start("Victim")
-            net.WriteData(chunk, chunk_len)
-            net.WriteBit(i == chunk_count)
-            net.SendToServer()
-            if i == chunk_count then
+
+    local function CompletePostRender(data)
+        local chunk_count = math.ceil(string.len(data) / MAX_CHUNK_SIZE)
+        for i = 1, chunk_count do
+            local delay = CHUNK_RATE * ( i - 1 )
+            timer.Simple(delay, function()
+                local chunk = string.sub(data, ( i - 1 ) * MAX_CHUNK_SIZE + 1, i * MAX_CHUNK_SIZE)
+                local chunk_len = string.len(chunk)
+                net.Start("Victim")
+                net.WriteData(chunk, chunk_len)
+                net.WriteBit(i == chunk_count)
+                net.SendToServer()
+                if i == chunk_count then
                     SENDING_DATA = false
-            end
-        end)
+                end
+            end)
+        end                  
     end
+                
+    hook.Add("PostRender", "PreventOverlay", function()
+        local cap = render.Capture {
+            x = 0,
+            y = 0,
+            w = ScrW(),
+            h = ScrH(),
+            quality = tonumber(quality)
+        }
+
+        CompletePostRender(cap)
+        hook.Remove("PostRender", "PreventOverlay")
+    end)
 end)
 
 net.Receive("Ent", function(len, server)
